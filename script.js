@@ -20,15 +20,21 @@ window.fetch = async (req, opts) => {
   const url = req?.url ?? req;
   const matches = url.match(/:\/\/(.*googlevideo.com)/);
   const ggc = matches?.at(1);
+  const controller = new AbortController();
+  let response;
 
   if (ggc) {
-    opts = {...opts, signal: AbortSignal.timeout(TIMEOUT) };
+    opts = {...opts, signal: controller.signal };
+    setTimeout(() => {
+      if (!response) {
+        controller.abort();
+        console.error(`>>> ${ggc} - Aborted after ${TIMEOUT} ms`);
+      }
+    }, TIMEOUT);
     console.log(`>>> ${ggc} - Timer set`);
   }
 
-  try {
-    return await origFetch(req, opts);
-  } catch (error) {
-    ggc && console.error(`>>> ${ggc} - ${error}`);
-  }
+  response = await origFetch(req, opts);
+
+  return response;
 }
